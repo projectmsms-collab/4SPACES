@@ -1,308 +1,204 @@
-/* =====================================
-   LABYRINTH QUEST - MAIN GAME CONTROLLER
-   ===================================== */
+// Game state
+let maze;
+let renderer;
+let taskManager;
+let gameState = {
+    level: 1,
+    xp: 0,
+    xpNeeded: 100,
+    taskAttempts: 0,
+    inTask: false,
+    gameComplete: false
+};
 
-class LabyrinthGame {
-    constructor() {
-        // Core game elements
-        this.maze = new Maze();
-        this.taskManager = new TaskManager();
-        this.renderer = new MazeRenderer(
-            document.getElementById('maze-canvas'),
-            this.maze
-        );
+// Initialize game
+function initGame() {
+    maze = new Maze();
+    renderer = new Renderer('maze-canvas', maze);
+    taskManager = new TaskManager();
+    gameState = {
+        level: 1,
+        xp: 0,
+        xpNeeded: 100,
+        taskAttempts: 0,
+        inTask: false,
+        gameComplete: false
+    };
+    
+    setupEventListeners();
+    updateUI();
+    render();
+}
 
-        // Game state
-        this.currentLevel = 1;
-        this.totalXP = 0;
-        this.currentXP = 0;
-        this.inMazePhase = true;
-        this.gameComplete = false;
-
-        // DOM elements
-        this.canvas = document.getElementById('maze-canvas');
-        this.taskInput = document.getElementById('task-input');
-        this.submitBtn = document.getElementById('submit-btn');
-        this.hintBtn = document.getElementById('hint-btn');
-        this.feedbackArea = document.getElementById('feedback-area');
-        this.hintsDisplay = document.getElementById('hints-display');
-        this.levelDisplay = document.getElementById('level-display');
-        this.xpDisplay = document.getElementById('xp-display');
-        this.tasksDisplay = document.getElementById('tasks-display');
-        this.positionDisplay = document.getElementById('position-display');
-
-        // Modals
-        this.achievementModal = document.getElementById('achievement-modal');
-        this.gameoverModal = document.getElementById('gameover-modal');
-
-        // Initialize event listeners
-        this.setupEventListeners();
-
-        // Draw initial maze
-        this.renderer.draw();
-        this.updateUI();
-    }
-
-    setupEventListeners() {
-        // Keyboard controls
-        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-
-        // Button controls
-        document.getElementById('btn-up').addEventListener('click', () => this.movePlayer('up'));
-        document.getElementById('btn-down').addEventListener('click', () => this.movePlayer('down'));
-        document.getElementById('btn-left').addEventListener('click', () => this.movePlayer('left'));
-        document.getElementById('btn-right').addEventListener('click', () => this.movePlayer('right'));
-
-        // Task controls
-        this.submitBtn.addEventListener('click', () => this.submitAnswer());
-        this.hintBtn.addEventListener('click', () => this.showHint());
-        this.taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.submitAnswer();
-            }
-        });
-
-        // Modal controls
-        document.querySelector('.close').addEventListener('click', () => this.closeModal());
-        document.getElementById('continue-btn').addEventListener('click', () => this.nextLevel());
-        document.getElementById('restart-btn').addEventListener('click', () => this.restart());
-    }
-
-    handleKeyPress(e) {
-        if (!this.inMazePhase) return;
-
-        switch (e.key) {
-            case 'ArrowUp':
-                e.preventDefault();
-                this.movePlayer('up');
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                this.movePlayer('down');
-                break;
-            case 'ArrowLeft':
-                e.preventDefault();
-                this.movePlayer('left');
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                this.movePlayer('right');
-                break;
+// Setup event listeners
+function setupEventListeners() {
+    document.getElementById('btn-up').addEventListener('click', () => movePlayer('up'));
+    document.getElementById('btn-down').addEventListener('click', () => movePlayer('down'));
+    document.getElementById('btn-left').addEventListener('click', () => movePlayer('left'));
+    document.getElementById('btn-right').addEventListener('click', () => movePlayer('right'));
+    
+    document.getElementById('submit-btn').addEventListener('click', submitTask);
+    document.getElementById('hint-btn').addEventListener('click', showHint);
+    
+    document.getElementById('continue-btn').addEventListener('click', nextLevel);
+    document.getElementById('restart-btn').addEventListener('click', restartGame);
+    
+    document.querySelector('.close').addEventListener('click', closeModal);
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            const directionMap = {
+                'ArrowUp': 'up',
+                'ArrowDown': 'down',
+                'ArrowLeft': 'left',
+                'ArrowRight': 'right'
+            };
+            movePlayer(directionMap[e.key]);
         }
-    }
+    });
+}
 
-    movePlayer(direction) {
-        if (!this.inMazePhase) return;
+// Player movement
+function movePlayer(direction) {
+    if (gameState.inTask) return;
+    
+    maze.movePlayer(direction);
+    render();
+    checkGoal();
+}
 
-        this.maze.movePlayer(direction);
-        this.renderer.draw();
-        this.updateUI();
-
-        // Check if player reached exit
-        if (this.maze.isAtExit()) {
-            this.reachedExit();
-        }
-    }
-
-    reachedExit() {
-        this.inMazePhase = false;
-        this.showFeedback(
-            `🎉 Maze completed! Now solve the task to progress!`,
-            'info'
-        );
-        this.taskInput.focus();
-    }
-
-    submitAnswer() {
-        if (this.inMazePhase) return;
-
-        const userAnswer = this.taskInput.value.trim();
-
-        if (!userAnswer) {
-            this.showFeedback('❌ Please enter an answer!', 'error');
-            return;
-        }
-
-        const isCorrect = this.taskManager.checkAnswer(userAnswer);
-
-        if (isCorrect) {
-            const task = this.taskManager.getCurrentTask();
-            this.gainXP(task.xpReward);
-            this.taskManager.addCompletedTask(task.id);
-
-            this.showFeedback(
-                `✅ Correct! You earned ${task.xpReward} XP!`,
-                'success'
-            );
-
-            this.taskInput.value = '';
-            this.hintsDisplay.classList.remove('show');
-
-            // Proceed to next task or level
-            setTimeout(() => this.proceedToNext(), 1500);
-        } else {
-            this.showFeedback(
-                `❌ Not quite right. Try again!`,
-                'error'
-            );
-            this.taskInput.value = '';
-        }
-    }
-
-    proceedToNext() {
-        if (this.taskManager.nextTask()) {
-            // More tasks in this level
-            this.displayTask();
-            this.resetMaze();
-        } else {
-            // Level complete!
-            if (this.currentLevel < 5) {
-                this.showAchievementModal();
-            } else {
-                this.showGameOverModal();
-            }
-        }
-    }
-
-    gainXP(amount) {
-        this.currentXP += amount;
-        this.totalXP += amount;
-
-        // Check if leveled up
-        if (this.currentXP >= 100) {
-            this.levelUp();
-        }
-
-        this.updateUI();
-    }
-
-    levelUp() {
-        const extraXP = this.currentXP - 100;
-        this.currentXP = extraXP;
-    }
-
-    displayTask() {
-        const task = this.taskManager.getCurrentTask();
-        if (!task) return;
-
-        document.getElementById('task-title').textContent = `📝 ${task.title}`;
-        document.getElementById('task-description').textContent = task.description;
-        document.getElementById('difficulty-badge').textContent = `Level ${this.currentLevel} - ${task.difficulty}`;
-
-        this.taskInput.value = '';
-        this.taskInput.placeholder = 'Type your answer here...';
-        this.hintsDisplay.classList.remove('show');
-        this.feedbackArea.classList.remove('success', 'error', 'info');
-        this.feedbackArea.textContent = '';
-        this.feedbackArea.style.display = 'none';
-
-        this.inMazePhase = true;
-        this.resetMaze();
-    }
-
-    resetMaze() {
-        this.maze = new Maze();
-        this.renderer.maze = this.maze;
-        this.renderer.draw();
-        this.updateUI();
-    }
-
-    showHint() {
-        const task = this.taskManager.getCurrentTask();
-        if (!task) return;
-
-        let hintsHTML = '<h4>💡 Hints:</h4>';
-        task.hints.forEach((hint, index) => {
-            hintsHTML += `<div class="hint-item">${index + 1}. ${hint}</div>`;
-        });
-
-        this.hintsDisplay.innerHTML = hintsHTML;
-        this.hintsDisplay.classList.add('show');
-    }
-
-    showFeedback(message, type) {
-        this.feedbackArea.textContent = message;
-        this.feedbackArea.className = `feedback-area ${type}`;
-        this.feedbackArea.style.display = 'flex';
-    }
-
-    updateUI() {
-        this.levelDisplay.textContent = this.currentLevel;
-        this.xpDisplay.textContent = `${this.currentXP}/100`;
-        this.tasksDisplay.textContent = this.taskManager.getTasksCompletedCount();
-        this.positionDisplay.textContent = `${this.maze.playerPos.x},${this.maze.playerPos.y}`;
-    }
-
-    showAchievementModal() {
-        const modal = this.achievementModal;
-        document.getElementById('achievement-title').textContent = `🎉 Level ${this.currentLevel} Complete!`;
-        document.getElementById('achievement-message').textContent =
-            `Great job completing Level ${this.currentLevel}! You've grown stronger in your coding journey. Ready for the next challenge?`;
-
-        modal.classList.add('show');
-    }
-
-    showGameOverModal() {
-        const modal = this.gameoverModal;
-        const totalTasks = this.taskManager.getTasksCompletedCount();
-
-        document.getElementById('gameover-message').textContent =
-            `🏆 Congratulations! You've conquered all 5 levels of Labyrinth Quest!`;
-
-        document.getElementById('gameover-stats').innerHTML = `
-            <strong>Final Stats:</strong><br>
-            Total Tasks Completed: ${totalTasks}<br>
-            Total XP Earned: ${this.totalXP}<br>
-            🌟 Achievement Unlocked: Labyrinth Master!
-        `;
-
-        modal.classList.add('show');
-    }
-
-    nextLevel() {
-        this.closeModal();
-
-        if (this.taskManager.nextLevel()) {
-            this.currentLevel++;
-            this.displayTask();
-            this.updateUI();
-        }
-    }
-
-    closeModal() {
-        this.achievementModal.classList.remove('show');
-        this.gameoverModal.classList.remove('show');
-    }
-
-    restart() {
-        this.closeModal();
-        this.currentLevel = 1;
-        this.totalXP = 0;
-        this.currentXP = 0;
-        this.taskManager.reset();
-        this.displayTask();
-        this.updateUI();
+// Check if player reached goal
+function checkGoal() {
+    if (maze.isAtExit()) {
+        startTask();
     }
 }
 
-/* =====================================
-   GAME INITIALIZATION
-   ===================================== */
+// Start task
+function startTask() {
+    gameState.inTask = true;
+    const task = taskManager.getCurrentTask();
+    
+    document.getElementById('task-title').textContent = task.title;
+    document.getElementById('task-description').textContent = task.description;
+    document.getElementById('difficulty-badge').textContent = `Difficulty: ${task.difficulty}`;
+    document.getElementById('task-input').value = '';
+    document.getElementById('feedback-area').textContent = '';
+    document.getElementById('hints-display').textContent = '';
+    document.getElementById('task-input').focus();
+}
 
-let game;
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize game
-    game = new LabyrinthGame();
-
-    // Show first task
-    game.displayTask();
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        if (game && game.renderer) {
-            game.renderer.resize();
-            game.renderer.draw();
+// Submit task answer
+function submitTask() {
+    const userAnswer = document.getElementById('task-input').value;
+    const feedback = document.getElementById('feedback-area');
+    
+    if (!userAnswer.trim()) {
+        feedback.textContent = 'Please enter an answer!';
+        feedback.className = 'feedback-area error';
+        return;
+    }
+    
+    if (taskManager.checkAnswer(userAnswer)) {
+        feedback.textContent = '✓ Correct! Well done!';
+        feedback.className = 'feedback-area success';
+        
+        // Award XP
+        const xpGain = 20;
+        gameState.xp += xpGain;
+        
+        if (gameState.xp >= gameState.xpNeeded) {
+            gameState.xp -= gameState.xpNeeded;
+            gameState.level++;
         }
-    });
-});
+        
+        taskManager.completeTask();
+        
+        if (taskManager.isGameComplete()) {
+            gameState.gameComplete = true;
+            showGameComplete();
+        } else {
+            setTimeout(showAchievement, 1500);
+        }
+    } else {
+        feedback.textContent = '✗ Incorrect. Try again!';
+        feedback.className = 'feedback-area error';
+        gameState.taskAttempts++;
+    }
+    
+    updateUI();
+}
+
+// Show hint
+function showHint() {
+    if (gameState.inTask) {
+        const hint = taskManager.getHint();
+        const hintsDisplay = document.getElementById('hints-display');
+        hintsDisplay.textContent = `💡 Hint: ${hint}`;
+    }
+}
+
+// Show achievement modal
+function showAchievement() {
+    const currentTask = taskManager.tasks[taskManager.currentTaskIndex - 1];
+    document.getElementById('achievement-title').textContent = '🎉 Task Complete!';
+    document.getElementById('achievement-message').textContent = `You completed: ${currentTask.title}`;
+    document.getElementById('achievement-modal').classList.add('show');
+}
+
+// Show game complete modal
+function showGameComplete() {
+    const stats = `
+        <p><strong>Levels:</strong> ${gameState.level}</p>
+        <p><strong>Total XP:</strong> ${gameState.xp}</p>
+        <p><strong>Tasks Completed:</strong> ${taskManager.tasksCompleted}/${taskManager.getTotalTasks()}</p>
+        <p><strong>Attempts:</strong> ${gameState.taskAttempts}</p>
+    `;
+    
+    document.getElementById('gameover-message').textContent = 'Congratulations! You completed the Labyrinth Quest!';
+    document.getElementById('gameover-stats').innerHTML = stats;
+    document.getElementById('gameover-modal').classList.add('show');
+}
+
+// Next level
+function nextLevel() {
+    closeModal();
+    gameState.inTask = false;
+    
+    // Reset maze position and goal
+    maze = new Maze();
+    renderer = new Renderer('maze-canvas', maze);
+    
+    updateUI();
+    render();
+}
+
+// Restart game
+function restartGame() {
+    closeModal();
+    initGame();
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('achievement-modal').classList.remove('show');
+    document.getElementById('gameover-modal').classList.remove('show');
+}
+
+// Update UI
+function updateUI() {
+    document.getElementById('level-display').textContent = gameState.level;
+    document.getElementById('xp-display').textContent = `${gameState.xp}/${gameState.xpNeeded}`;
+    document.getElementById('tasks-display').textContent = taskManager.tasksCompleted;
+    document.getElementById('position-display').textContent = `${maze.playerPos.x},${maze.playerPos.y}`;
+}
+
+// Render game
+function render() {
+    renderer.render(maze.playerPos.x, maze.playerPos.y, maze.exitPos.x, maze.exitPos.y);
+}
+
+// Start game when page loads
+window.addEventListener('DOMContentLoaded', initGame);
