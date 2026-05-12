@@ -1,71 +1,25 @@
 <!DOCTYPE html>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Labyrinth Quest</title>
-    <link rel="stylesheet" href="style.css">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Labyrinth Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
 
-<div class="game-container">
-    <h1>🧩 Labyrinth Quest</h1>
+<canvas id="maze-canvas"></canvas>
 
-    <div class="stats-bar">
-        <div>Level: <span id="level-display">1</span></div>
-        <div>XP: <span id="xp-display">0/100</span></div>
-        <div>Tasks: <span id="tasks-display">0</span></div>
-        <div>Position: <span id="position-display">0,0</span></div>
-    </div>
-
-    <canvas id="maze-canvas" width="500" height="500"></canvas>
-
-    <div class="controls">
-        <button id="btn-up">⬆</button>
-        <div>
-            <button id="btn-left">⬅</button>
-            <button id="btn-down">⬇</button>
-            <button id="btn-right">➡</button>
-        </div>
-    </div>
-
-    <div class="task-box">
-        <h2 id="task-title">Task</h2>
-        <p id="task-description"></p>
-        <div id="difficulty-badge"></div>
-
-        <input type="text" id="task-input" placeholder="Type answer here">
-
-        <div class="task-buttons">
-            <button id="submit-btn">Submit</button>
-            <button id="hint-btn">Hint</button>
-        </div>
-
-        <div id="feedback-area" class="feedback-area"></div>
-        <div id="hints-display"></div>
-    </div>
-</div>
-
-<div id="achievement-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2 id="achievement-title"></h2>
-        <p id="achievement-message"></p>
-        <button id="continue-btn">Next Level</button>
-    </div>
-</div>
-
-<div id="gameover-modal" class="modal">
-    <div class="modal-content">
-        <h2>Game Complete!</h2>
-        <p id="gameover-message"></p>
-        <div id="gameover-stats"></div>
-        <button id="restart-btn">Restart Game</button>
-    </div>
-</div>
-
-<script src="maze.js"></script>
-<script src="taskManager.js"></script>
-<script src="renderer.js"></script>
-<script src="game.js"></script>
+<script src="games/labyrinth/game.js"></script>
 
 </body>
 </html>
