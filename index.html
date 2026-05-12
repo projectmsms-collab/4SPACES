@@ -1,252 +1,289 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Labyrinth Quest</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Labyrinth Quest</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#121212;
+    color:white;
+    text-align:center;
+}
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #121212;
-            color: white;
-            text-align: center;
-        }
+.game-container{
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+}
 
-        .game-container {
-            max-width: 900px;
-            margin: auto;
-            padding: 20px;
-        }
+canvas{
+    background:#222;
+    border:3px solid #555;
+    margin-top:20px;
+}
 
-        h1 {
-            margin-bottom: 20px;
-        }
+button{
+    padding:10px 20px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
+    background:#4CAF50;
+    color:white;
+    cursor:pointer;
+    font-size:16px;
+}
 
-        .stats-bar {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+button:hover{
+    background:#45a049;
+}
 
-        .stats-bar div {
-            background: #1f1f1f;
-            padding: 10px 15px;
-            border-radius: 8px;
-        }
+.task-box{
+    background:#1e1e1e;
+    padding:20px;
+    margin-top:20px;
+    border-radius:10px;
+}
 
-        canvas {
-            background: #222;
-            border: 3px solid #555;
-            max-width: 100%;
-        }
+input{
+    padding:10px;
+    width:80%;
+    max-width:400px;
+    border:none;
+    border-radius:5px;
+}
 
-        .controls {
-            margin-top: 20px;
-        }
+.feedback{
+    margin-top:10px;
+    font-weight:bold;
+}
 
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 6px;
-            background: #4CAF50;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-        }
+.stats{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+}
 
-        button:hover {
-            background: #45a049;
-        }
-
-        .task-box {
-            background: #1e1e1e;
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        input {
-            width: 80%;
-            max-width: 400px;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-
-        .feedback-area {
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        .success {
-            color: #4CAF50;
-        }
-
-        .error {
-            color: #ff4c4c;
-        }
-
-        .info {
-            color: #00bfff;
-        }
-
-        #hints-display {
-            margin-top: 15px;
-            text-align: left;
-            background: #2b2b2b;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #222;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-        }
-
-        .close {
-            float: right;
-            cursor: pointer;
-            font-size: 28px;
-        }
-
-        @media (max-width: 600px) {
-            button {
-                width: 80px;
-            }
-
-            input {
-                width: 95%;
-            }
-        }
-    </style>
+.stats div{
+    background:#1f1f1f;
+    padding:10px;
+    border-radius:8px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="game-container">
 
-    <h1>🧩 Labyrinth Quest</h1>
+<h1>🧩 Labyrinth Quest</h1>
 
-    <div class="stats-bar">
-        <div>Level: <span id="level-display">1</span></div>
-        <div>XP: <span id="xp-display">0/100</span></div>
-        <div>Tasks: <span id="tasks-display">0</span></div>
-        <div>Position: <span id="position-display">0,0</span></div>
-    </div>
+<div class="stats">
+    <div>Level: <span id="level">1</span></div>
+    <div>XP: <span id="xp">0</span></div>
+</div>
 
-    <canvas id="maze-canvas" width="500" height="500"></canvas>
+<canvas id="gameCanvas" width="500" height="500"></canvas>
 
-    <div class="controls">
-        <div>
-            <button id="btn-up">⬆</button>
-        </div>
+<div>
+    <button onclick="move('up')">⬆</button><br>
+    <button onclick="move('left')">⬅</button>
+    <button onclick="move('down')">⬇</button>
+    <button onclick="move('right')">➡</button>
+</div>
 
-        <div>
-            <button id="btn-left">⬅</button>
-            <button id="btn-down">⬇</button>
-            <button id="btn-right">➡</button>
-        </div>
-    </div>
+<div class="task-box">
 
-    <div class="task-box">
+<h2 id="taskTitle">Task</h2>
 
-        <h2 id="task-title">Task</h2>
+<p id="taskDescription">
+Reach the green square to unlock the question.
+</p>
 
-        <p id="task-description">
-            Reach the green square then solve the challenge.
-        </p>
+<input type="text" id="answerInput" placeholder="Type answer">
 
-        <div id="difficulty-badge"></div>
+<br><br>
 
-        <input
-            type="text"
-            id="task-input"
-            placeholder="Type answer here"
-        >
+<button onclick="submitAnswer()">Submit</button>
 
-        <div style="margin-top:15px;">
-            <button id="submit-btn">Submit</button>
-            <button id="hint-btn">Hint</button>
-        </div>
-
-        <div id="feedback-area" class="feedback-area"></div>
-
-        <div id="hints-display"></div>
-
-    </div>
+<div class="feedback" id="feedback"></div>
 
 </div>
 
-<!-- Achievement Modal -->
-<div id="achievement-modal" class="modal">
-
-    <div class="modal-content">
-
-        <span class="close">&times;</span>
-
-        <h2 id="achievement-title"></h2>
-
-        <p id="achievement-message"></p>
-
-        <button id="continue-btn">
-            Next Level
-        </button>
-
-    </div>
-
 </div>
 
-<!-- Game Over Modal -->
-<div id="gameover-modal" class="modal">
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-    <div class="modal-content">
+const cellSize = 50;
+const mazeSize = 10;
 
-        <h2>🏆 Game Complete!</h2>
+let player = {x:0,y:0};
+let exit = {x:9,y:9};
 
-        <p id="gameover-message"></p>
+let level = 1;
+let xp = 0;
 
-        <div id="gameover-stats"></div>
+const tasks = [
+{
+    question:"What is 5 + 7?",
+    answer:"12"
+},
+{
+    question:"What keyword creates variable in JavaScript?",
+    answer:"let"
+},
+{
+    question:"What comes after B?",
+    answer:"c"
+}
+];
 
-        <button id="restart-btn">
-            Restart Game
-        </button>
+let currentTask = 0;
+let waitingForAnswer = false;
 
-    </div>
+function draw(){
+    ctx.clearRect(0,0,500,500);
 
-</div>
+    for(let y=0;y<mazeSize;y++){
+        for(let x=0;x<mazeSize;x++){
+            ctx.strokeStyle="#555";
+            ctx.strokeRect(
+                x*cellSize,
+                y*cellSize,
+                cellSize,
+                cellSize
+            );
+        }
+    }
 
-<!-- JavaScript Files -->
-<script src="maze.js"></script>
-<script src="taskManager.js"></script>
-<script src="renderer.js"></script>
-<script src="game.js"></script>
+    ctx.fillStyle="green";
+    ctx.fillRect(
+        exit.x*cellSize,
+        exit.y*cellSize,
+        cellSize,
+        cellSize
+    );
+
+    ctx.fillStyle="red";
+    ctx.beginPath();
+    ctx.arc(
+        player.x*cellSize+25,
+        player.y*cellSize+25,
+        15,
+        0,
+        Math.PI*2
+    );
+    ctx.fill();
+}
+
+function move(direction){
+
+    if(waitingForAnswer) return;
+
+    if(direction==="up" && player.y>0) player.y--;
+    if(direction==="down" && player.y<mazeSize-1) player.y++;
+    if(direction==="left" && player.x>0) player.x--;
+    if(direction==="right" && player.x<mazeSize-1) player.x++;
+
+    draw();
+
+    if(player.x===exit.x && player.y===exit.y){
+        waitingForAnswer = true;
+
+        document.getElementById("taskTitle").innerText =
+            tasks[currentTask].question;
+
+        document.getElementById("feedback").innerText =
+            "Solve the task!";
+    }
+}
+
+function submitAnswer(){
+
+    if(!waitingForAnswer) return;
+
+    const answer =
+        document.getElementById("answerInput")
+        .value
+        .trim()
+        .toLowerCase();
+
+    if(answer===tasks[currentTask].answer.toLowerCase()){
+
+        xp += 20;
+
+        document.getElementById("xp").innerText = xp;
+
+        document.getElementById("feedback").innerText =
+            "✅ Correct!";
+
+        currentTask++;
+
+        if(currentTask>=tasks.length){
+
+            setTimeout(()=>{
+                alert("🏆 You completed Labyrinth Quest!");
+                resetGame();
+            },500);
+
+            return;
+        }
+
+        level++;
+
+        document.getElementById("level").innerText = level;
+
+        player = {x:0,y:0};
+
+        waitingForAnswer = false;
+
+        document.getElementById("answerInput").value = "";
+
+        document.getElementById("taskTitle").innerText = "Task";
+
+        draw();
+
+    }else{
+
+        document.getElementById("feedback").innerText =
+            "❌ Wrong answer!";
+    }
+}
+
+function resetGame(){
+
+    level = 1;
+    xp = 0;
+    currentTask = 0;
+
+    document.getElementById("level").innerText = level;
+    document.getElementById("xp").innerText = xp;
+
+    player = {x:0,y:0};
+
+    waitingForAnswer = false;
+
+    draw();
+}
+
+document.addEventListener("keydown",(e)=>{
+
+    if(e.key==="ArrowUp") move("up");
+    if(e.key==="ArrowDown") move("down");
+    if(e.key==="ArrowLeft") move("left");
+    if(e.key==="ArrowRight") move("right");
+
+});
+
+draw();
+</script>
 
 </body>
 </html>
